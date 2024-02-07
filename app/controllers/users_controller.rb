@@ -3,7 +3,11 @@ class UsersController < ApplicationController
     rescue_from ActiveRecord::RecordInvalid, with: :handle_invalid_record
 
     def create
-        user = User.create!(user_params)
+        role_type = user_params[:role_type].presence || 'USER'
+        role = AccessRole.find_by(role: role_type)
+        return render json: { error: 'Invalid role_type' }, status: :bad_request unless role
+
+        user = User.create!(user_params.except(:role_type).merge(access_role_id: role.id))
         @token = encode_token(user_id: user.id)
         render json:{
             user: UserSerializer.new(user),
@@ -18,7 +22,7 @@ class UsersController < ApplicationController
     private
 
     def user_params
-        params.require(:user).permit(:mobile_no, :password , :user_name , :access_role_id)
+        params.require(:user).permit(:mobile_no, :password , :user_name , :role_type)
     end
 
     def handle_invalid_record(e)
