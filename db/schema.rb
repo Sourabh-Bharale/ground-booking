@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_02_07_093206) do
+ActiveRecord::Schema[7.1].define(version: 2024_02_07_121318) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -22,9 +22,42 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_07_093206) do
 
   create_table "events", force: :cascade do |t|
     t.date "date"
+    t.string "event_status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["user_id"], name: "index_events_on_user_id"
+  end
+
+  create_table "payments", force: :cascade do |t|
+    t.float "amount"
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_payments_on_user_id"
+  end
+
+  create_table "registrations", force: :cascade do |t|
+    t.string "status"
+    t.string "receipt_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.bigint "payment_id", null: false
+    t.bigint "slot_id", null: false
+    t.index ["payment_id"], name: "index_registrations_on_payment_id"
+    t.index ["slot_id"], name: "index_registrations_on_slot_id"
+    t.index ["user_id"], name: "index_registrations_on_user_id"
+  end
+
+  create_table "slots", force: :cascade do |t|
+    t.string "time_slot"
+    t.string "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "event_id", null: false
+    t.index ["event_id"], name: "index_slots_on_event_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -37,5 +70,11 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_07_093206) do
     t.index ["access_role_id"], name: "index_users_on_access_role_id"
   end
 
+  add_foreign_key "events", "users"
+  add_foreign_key "payments", "users"
+  add_foreign_key "registrations", "payments"
+  add_foreign_key "registrations", "slots"
+  add_foreign_key "registrations", "users"
+  add_foreign_key "slots", "events"
   add_foreign_key "users", "access_roles"
 end
