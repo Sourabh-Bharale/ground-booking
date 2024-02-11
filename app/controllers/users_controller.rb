@@ -1,7 +1,7 @@
 class UsersController < ApplicationController
     skip_before_action :authorized, only: [:create]
     rescue_from ActiveRecord::RecordInvalid, with: :handle_invalid_record
-
+    
     def create
         role_type = user_params[:role_type].presence || 'USER'
         role = AccessRole.find_by(role: role_type)
@@ -14,12 +14,45 @@ class UsersController < ApplicationController
             token: @token
         }, status: :created
     end
+
     
-    def some_method
-        render json: {message: "Only authorized users can see this message!"}
+    def current_user_registrations
+        @registrations = current_user.registrations.all
+        paginate(@registrations)
+    end
+
+    def all_registrations
+        if current_user.access_role.admin?
+            @registrations = Registration.find_by(user_id: params[:user_id])
+            paginate(@registrations)
+        else
+            render json: { error: "You do not have permission to view all registrations" }, status: :forbidden
+        end
+    end
+
+    def search
+        @users = User.where(search_params)
+        if @users.empty?
+            render json: { error: "No user found" }, status: :not_found
+        else
+           paginate(@users)
+        end
     end
 
     private
+
+    def paginate(record)
+        begin
+            @pagy, @records = pagy(record , items: 2)
+            render json: { users: @records }, status: :ok
+        rescue Pagy::OverflowError => e
+            render json: { error: e.message }, status: :bad_request
+        end
+    end
+
+    def search_params
+        params.permit(:user_name, :mobile_no)
+    end
 
     def user_params
         params.require(:user).permit(:mobile_no, :password , :user_name , :role_type)

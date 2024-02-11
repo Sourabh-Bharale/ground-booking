@@ -1,6 +1,8 @@
 class ApplicationController < ActionController::Base
     protect_from_forgery 
     before_action :authorized
+    include Pagy::Backend
+
     def encode_token(payload)
         JWT.encode(payload, Rails.application.secrets.secret_key_base)
     end
@@ -25,8 +27,23 @@ class ApplicationController < ActionController::Base
     end
 
     def authorized
-        unless !!current_user
+        if current_user.nil?
             render json: {message: "Please log in"}, status: :unauthorized
         end
     end
+
+ 
+  rescue_from CanCan::AccessDenied do |exception|
+    render json: { error: exception.message }, status: :forbidden
+  end
+
+  rescue_from ActiveRecord::RecordNotFound do |exception|
+    Rails.logger.error "Record not found: #{exception.message}"
+    render json: { error: 'Record not found' }, status: :not_found
+  end
+
+  rescue_from StandardError do |exception|
+    Rails.logger.error "Error occurred: #{exception.message}"
+    render json: { error: 'An error occurred' }, status: :internal_server_error
+  end
 end
