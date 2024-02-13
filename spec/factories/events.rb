@@ -2,6 +2,6 @@ FactoryBot.define do
   factory :event do
     event_status { "AVAILABLE" }
     date { Date.today + 1.day }
-    association :user
+    user { FactoryBot.create(:user) }
   end
 end

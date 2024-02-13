@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :slot do
-    time_slot { "9AM-10AM" }
-    status { "AVAILABLE" }
-    association :event
+    sequence(:time_slot) { |n| "#{n%12+1}AM-#{n%12+2}AM" }
+    status { ["AVAILABLE" , "BOOKED"].sample }
+    event { FactoryBot.create(:event) }
   end
 end

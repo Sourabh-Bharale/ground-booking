@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :registration do
-    status { "PENDING" }
-    association :user
-    association :slot
+    status { ['PENDING', 'CONFIRMED', 'CANCELED'].sample }
+    user { FactoryBot.create(:user) }
+    slot { FactoryBot.create(:slot) }
   end
 end
