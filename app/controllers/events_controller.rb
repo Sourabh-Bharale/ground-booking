@@ -38,8 +38,12 @@ class EventsController < ApplicationController
   def destroy
     @event = current_user.events.find(params[:id])
     authorize! :destroy, @event
-    @event.destroy
-    render json: { message: "Event deleted successfully" }, status: :ok
+    begin
+      @event.destroy
+        render json: { message: "Event deleted successfully" }, status: :ok
+    rescue ActiveRecord::InvalidForeignKey => e
+      render json: { errors: "cannot delete event while slots exists" }, status: :unprocessable_entity
+    end
   end
 
   private
