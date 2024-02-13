@@ -1,7 +1,7 @@
 class UsersController < ApplicationController
     skip_before_action :authorized, only: [:create]
     rescue_from ActiveRecord::RecordInvalid, with: :handle_invalid_record
-    
+
     def create
         role_type = user_params[:role_type].presence || 'USER'
         role = AccessRole.find_by(role: role_type)
@@ -23,7 +23,7 @@ class UsersController < ApplicationController
 
     def all_registrations
         if current_user.access_role.admin?
-            @registrations = Registration.find_by(user_id: params[:user_id])
+            @registrations = Registration.where(user_id: params[:user_id])
             paginate(@registrations)
         else
             render json: { error: "You do not have permission to view all registrations" }, status: :forbidden

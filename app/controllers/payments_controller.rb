@@ -76,11 +76,7 @@ class PaymentsController < ApplicationController
     def process_payment
         @payment = @registration.build_payment(payment_params)
         if @payment.save
-            if @payment.status == "PAID"
-                @registration.update(payment_id: @payment.id, receipt_url: "https://www.example.com/receipts/#{SecureRandom.uuid}")
-            else
-                @registration.update(payment_id: @payment.id)
-            end
+            @registration.update(payment_id: @payment.id)
             update_registration_and_slot_status
             render json: @payment, status: :created
         else
@@ -89,18 +85,25 @@ class PaymentsController < ApplicationController
     end
 
     def update_registration_and_slot_status
-        if @payment.status == "PAID"
-            @registration.status = "CONFIRMED"
-            @registration.receipt_url = "https://www.example.com/receipts/#{SecureRandom.uuid}"
-            @registration.slot.status = "BOOKED"
-        elsif @payment.status == "PENDING"
-            @registration.status = "PENDING"
-            @registration.slot.status = "AVAILABLE"
-        elsif @payment.status == "FAILED"
-            @registration.status = "CANCELLED"
-            @registration.slot.status = "AVAILABLE"
-        end
+        @registration.assign_attributes(status: determine_status, receipt_url: assign_receipt_url)
+        @registration.slot.status = determine_slot_status
         @registration.save
+    end
+
+    def determine_status
+        return "CONFIRMED" if @payment.status == "PAID"
+        return "CANCELLED" if @payment.status == "FAILED"
+        "PENDING"
+    end
+
+    def determine_slot_status
+        return "BOOKED" if @payment.status == "PAID"
+        "AVAILABLE"
+    end
+
+    def assign_receipt_url
+        return "https://www/example.com/reciepts/#{SecureRandom.uuid}" if @payment.status == "PAID"
+        nil
     end
 
     def payment_params 
@@ -109,6 +112,10 @@ class PaymentsController < ApplicationController
 
     def update_params 
         params.require(:payment).permit(:status)
+    end
+
+    def search_params
+        params.permit(:amount, :status)
     end
 
 end

@@ -1,4 +1,7 @@
 class RegistrationsController < ApplicationController
+    before_action :set_registration, only: [:show, :destroy]
+    before_action :set_event_and_slot, only: [:create]
+
     def index
         @registrations = Registration.where(search_params)
         if @registrations.empty?
@@ -17,71 +20,72 @@ class RegistrationsController < ApplicationController
         end
     end
 
-    def new
-        @registration = Registration.new
-    end
-
     def create
-        @event = Event.find_by(id: params[:event_id])
-        if @event.nil? || @event.event_status != "AVAILABLE"
-            render json: { error: "Invalid event ID or event is not available for registration" }, status: :forbidden
-        else
-            @slot = @event.slots.find_by(id: params[:slot_id])
-            if @slot.nil? || @slot.status != "AVAILABLE"
-                render json: { error: "Invalid slot ID or slot is not available for registration" }, status: :forbidden
-            else
-                @slot.status = "BOOKED"
-                if @slot.save
-                    @registration = Registration.new(status: "PENDING", slot_id: @slot.id, user_id: current_user.id)
-                    if @registration.save
-                        # check payment status and update registration status
-                        render json: @registration, status: :ok
-                    else
-                        render json: { errors: @registration.errors.full_messages }, status: :unprocessable_entity
-                    end
-                else
-                    render json: { errors: @slot.errors.full_messages }, status: :unprocessable_entity
-                end
-            end
+        unless valid_event_and_slot?
+            render json: { error: "Invalid event ID or slot ID" }, status: :forbidden
         end
+        @slot.update!(status: "BOOKED")
+        @registration = Registration.new(status: "PENDING", slot: @slot, user: current_user)
+        if @registration.save
+            render json: @registration, status: :created
+        else
+            render json: { errors: @registration.errors.full_messages }, status: :unprocessable_entity
+        end     
     end
 
 
     def destroy
-        @registration = Registration.find(params[:id])
-        if @registration.nil? || @registration.user_id != current_user.id
+        unless valid_registration?
             render json: { error: "Invalid registration ID or you do not have permission to delete this registration" }, status: :forbidden
-        elsif @registration.payment.nil? || @registration.payment.status != 'FAILED'
-            render json: { error: "Registration cannot be deleted unless its payment status is cancelled" }, status: :unprocessable_entity
-        else
-            @slot = @registration.slot
-            @slot.status = "AVAILABLE"
-            if @slot.save
-                @registration.destroy
-                render json: { message: "Registration deleted successfully" }, status: :ok
-            else
-                render json: { errors: @slot.errors.full_messages }, status: :unprocessable_entity
-            end
         end
+
+        unless valid_payment?
+            render json: { error: "Payment already exists for this registration" }, status: :forbidden
+        end
+
+        @registration.slot.update!(status: "AVAILABLE")
+        @registration.destroy
+        render json: { message: "Registration deleted successfully" }, status: :ok  
     end
 
     private 
 
-    def registration_params
-        params.require(:registration).permit(:slot_id, :status, :payment_id, :receipt_url)
-    end
-
-    def search_params
-        params.permit( :id , :user_id, :slot_id , :status , :payment_id)
-    end
-
-    def paginate(record)
-        begin
-            @pagy, @records = pagy(record , items: 2)
-            render json: @records , each_serializer: RegistrationSerializer , status: :ok
-        rescue Pagy::OverflowError => e
-            render json: { error: e.message }, status: :bad_request
+        def set_registration
+            @registration = Registration.find(params[:id])
         end
-    end
+
+        def set_event_and_slot
+            @event = Event.find_by(id: params[:event_id])
+            @slot = @event&.slots&.find_by(id: params[:slot_id])
+        end
+
+        def valid_event_and_slot?
+            @event.present? && @event.event_status == "AVAILABLE" && @slot.present? && @slot.status == "AVAILABLE"
+        end
+
+        def valid_registration?
+            @registration.present? && @registration.user_id == current_user.id
+        end
+
+        def valid_payment?
+            @registration.payment.nil? || @registration.payment.status == 'FAILED'
+        end
+
+        def registration_params
+            params.require(:registration).permit(:slot_id, :status, :payment_id, :receipt_url)
+        end
+
+        def search_params
+            params.permit( :id , :user_id, :slot_id , :status , :payment_id)
+        end
+
+        def paginate(record)
+            begin
+                @pagy, @records = pagy(record , items: 2)
+                render json: @records , each_serializer: RegistrationSerializer , status: :ok
+            rescue Pagy::OverflowError => e
+                render json: { error: e.message }, status: :bad_request
+            end
+        end
 
 end

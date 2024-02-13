@@ -1,11 +1,16 @@
 class SlotsController < ApplicationController
+    before_action :set_event
+    before_action :set_slot, only: [:show, :update, :destroy]
+    before_action :authorize_slot , only: [:create, :update, :destroy]
+    before_action :check_event_validity 
+    before_action :check_event_availability
+
     def index
-        @slots = Event.find(params[:event_id]).slots.all
-        render json: @slots, status: :ok
+        @slots = @event.slots.all
+        paginate(@slots)
     end
 
     def show
-        @slot = Slot.find(params[:id])
         if @slot.nil?
             render json: { error: "Invalid slot ID" }, status: :not_found
         else
@@ -13,53 +18,26 @@ class SlotsController < ApplicationController
         end
     end
 
-    def new
-        @slot = Slot.new
-    end
-
     def create
-            @event = Event.find(params[:event_id])
-            @slot = @event.slots.new(slot_params)
-            authorize! :create, @slot
-            if @event.nil? || @event.user_id != current_user.id
-                render json: { error: "Invalid event ID or you do not have permission to add a slot to this event user id allowed #{@event.user_id} but received #{current_user.id}" }, status: :forbidden
-            elsif @event.event_status != "AVAILABLE"
-                render json: { error: "Event is not available for slot update" }, status: :forbidden
-            else
-                if @slot.save
-                    render json: @slot, status: :created
-                else
-                    render json: { errors: @slot.errors.full_messages }, status: :unprocessable_entity
-                end
-            end
+        @slot = @event.slots.new(slot_params)
+        if @slot.save
+            render json: @slot, status: :created
+        else
+            render json: { errors: @slot.errors.full_messages }, status: :unprocessable_entity
+        end
     end
 
-    def edit
-        @slot = Slot.find(params[:id])
-    end
 
     def update
-        @event = Event.find(params[:event_id])
-        @slot = Slot.find(params[:id])
-        authorize! :update, @slot
-        if @event.nil? || @event.user_id != current_user.id
-            render json: { error: "Invalid event ID or you do not have permission to update a slot to this event user id allowed #{@event.user_id} but received #{current_user.id}" }, status: :forbidden
-        elsif @event.event_status != "AVAILABLE"
-            render json: { error: "Event is not available for slot update" }, status: :forbidden
+        if @slot.update(slot_params)
+            render json: @slot, status: :ok
         else
-            if @slot.update(slot_params)
-                render json: @slot, status: :ok
-            else
-                render json: { errors: @slot.errors.full_messages }, status: :unprocessable_entity
-            end
+            render json: { errors: @slot.errors.full_messages }, status: :unprocessable_entity
         end
     end
 
     def destroy
-        @event = Event.find(params[:event_id])
-        @slot = Slot.find(params[:id])
-        authorize! :destroy, @slot
-        if @event.nil? || @event.user_id != current_user.id
+        if  @event.user_id != current_user.id
             render json: { error: "Invalid event ID or you do not have permission to delete a slot to this event user id allowed #{@event.user_id} but received #{current_user.id}" }, status: :forbidden
         else
             @slot.destroy
@@ -67,11 +45,51 @@ class SlotsController < ApplicationController
         end
     end
 
-    
-
    private
+
+   def authorize_slot
+    authorize! :manage, @slot
+   end
+
+    def set_event
+        @event = Event.find_by_id(params[:event_id])
+        if @event.nil?
+            render json: { error: "Invalid event ID" }, status: :not_found
+        end
+    end
+
+    def set_slot
+        @slot = Slot.find_by_id(params[:id])
+        if @slot.nil?
+            render json: { error: "Invalid slot ID" }, status: :not_found
+        end
+    end
+
+    def check_event_validity
+        if @event.nil? || @event.user_id != current_user.id
+            render json: { error: "Invalid event ID or you do not have permission to add a slot to this event user id allowed #{@event.user_id} but received #{current_user.id}" }, status: :forbidden
+            return
+        end
+    end
+
+    def check_event_availability
+        if @event.event_status != "AVAILABLE"
+            render json: { error: "Event is not available for slot update" }, status: :forbidden
+            return
+        end
+    end
+
+    def paginate(record)
+        begin
+            @pagy, @records = pagy(record , items: 2)
+            render json: { users: @records }, status: :ok
+        rescue Pagy::OverflowError => e
+            render json: { error: e.message }, status: :bad_request
+        end
+    end
 
     def slot_params
         params.require(:slot).permit(:time_slot, :status)
     end
+
 end
