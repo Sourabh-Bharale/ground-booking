@@ -7,7 +7,8 @@ class Ability
     user ||= User.new # guest user (not logged in)
     if user.access_role.admin?
       can :manage, Event
-      can :manage, Slot
+      can :manage, Slot 
+      # can :read, User
     else
       can :read, Event
       can :read, Slot

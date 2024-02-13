@@ -4,7 +4,7 @@ RSpec.describe Event, type: :model do
   subject { build(:event) }
     describe "validations" do
         it 'should be valid with valid attributes' do
-            expect(subject).to be_valid
+            expect(subject).to be_valid  
         end
         
         it 'should not be valid without a user' do

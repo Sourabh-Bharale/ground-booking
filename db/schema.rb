@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_02_07_121318) do
+ActiveRecord::Schema[7.1].define(version: 2024_02_08_171652) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -35,6 +35,7 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_07_121318) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.integer "registration_id"
     t.index ["user_id"], name: "index_payments_on_user_id"
   end
 
@@ -44,7 +45,7 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_07_121318) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.bigint "payment_id", null: false
+    t.integer "payment_id"
     t.bigint "slot_id", null: false
     t.index ["payment_id"], name: "index_registrations_on_payment_id"
     t.index ["slot_id"], name: "index_registrations_on_slot_id"
