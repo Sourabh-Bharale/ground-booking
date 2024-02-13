@@ -1,7 +1,6 @@
 class SlotsController < ApplicationController
     before_action :set_event
     before_action :set_slot, only: [:show, :update, :destroy]
-    before_action :authorize_slot , only: [:create, :update, :destroy]
     before_action :check_event_validity 
     before_action :check_event_availability
 
@@ -20,6 +19,7 @@ class SlotsController < ApplicationController
 
     def create
         @slot = @event.slots.new(slot_params)
+        authorize_slot
         if @slot.save
             render json: @slot, status: :created
         else
@@ -29,6 +29,7 @@ class SlotsController < ApplicationController
 
 
     def update
+        authorize_slot
         if @slot.update(slot_params)
             render json: @slot, status: :ok
         else
@@ -37,6 +38,7 @@ class SlotsController < ApplicationController
     end
 
     def destroy
+        authorize_slot
         if  @event.user_id != current_user.id
             render json: { error: "Invalid event ID or you do not have permission to delete a slot to this event user id allowed #{@event.user_id} but received #{current_user.id}" }, status: :forbidden
         else
