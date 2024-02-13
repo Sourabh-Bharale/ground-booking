@@ -55,12 +55,11 @@ end
     let(:admin_role) { AccessRole.find_by(role: 'ADMIN') }
     let(:admin) { create(:user , access_role: admin_role ) }
     let(:user) {create(:user)}
-    let(:registrations) { create_list(:registration, 3, user: user) }
      
     context "when access_role is admin" do
-      before do
-        add_headers(admin)
-      end
+        before do
+          add_headers(admin)
+        end
   
       it "should return all registration of user" do
         post :all_registrations, params: { user_id: admin.id }
@@ -69,6 +68,9 @@ end
     end
 
     context "when access_role is not admin" do
+        before do
+          add_headers(user)
+        end
       it "should return forbidden status" do
         post :all_registrations, params: { user_id: user.id }
         expect(response).to have_http_status(:forbidden)
