@@ -23,6 +23,11 @@ class RegistrationsController < ApplicationController
     def create
         unless valid_event_and_slot?
             render json: { error: "Invalid event ID or slot ID" }, status: :forbidden
+            return
+        end
+        if @slot.status == "BOOKED"
+            render json: { error: "Slot is already booked" }, status: :conflict
+            return
         end
         @slot.update!(status: "BOOKED")
         @registration = Registration.new(status: "PENDING", slot: @slot, user: current_user)
@@ -30,7 +35,7 @@ class RegistrationsController < ApplicationController
             render json: @registration, status: :created
         else
             render json: { errors: @registration.errors.full_messages }, status: :unprocessable_entity
-        end     
+        end
     end
 
 
@@ -45,10 +50,10 @@ class RegistrationsController < ApplicationController
 
         @registration.slot.update!(status: "AVAILABLE")
         @registration.destroy
-        render json: { message: "Registration deleted successfully" }, status: :ok  
+        render json: { message: "Registration deleted successfully" }, status: :ok
     end
 
-    private 
+    private
 
         def set_registration
             @registration = Registration.find(params[:id])
