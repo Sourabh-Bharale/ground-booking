@@ -1,4 +1,5 @@
 class UserSerializer < ActiveModel::Serializer
-  attributes :id , :user_name  , :mobile_no , :access_role_id 
+  belongs_to :access_role
+  attributes :id , :user_name  , :mobile_no , :access_role_id
   has_many :events
 end
