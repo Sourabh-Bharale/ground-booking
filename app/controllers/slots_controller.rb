@@ -2,7 +2,7 @@ class SlotsController < ApplicationController
     before_action :set_event
     before_action :set_slot, only: [:show, :update, :destroy]
     before_action :check_event_validity
-    before_action :check_event_availability
+    before_action :check_event_availability, except: [:index, :show]
 
     def index
         @slots = @event.slots.all
