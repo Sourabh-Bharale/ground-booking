@@ -50,8 +50,12 @@ class EventsController < ApplicationController
 
   def paginate(record)
     begin
-      @pagy, @records = pagy(record , items: 2)
-      render json: { events: @records }, status: :ok
+      @pagy, @records = pagy(record , items: 10)
+      render json: {
+        events: @records,
+        total_pages: @pagy.pages,
+        total_records: @pagy.count
+        }, status: :ok
     rescue Pagy::OverflowError => e
       render json: { error: e.message }, status: :bad_request
     end
@@ -64,5 +68,5 @@ class EventsController < ApplicationController
   def search_params
     params.permit(:event_status, :date)
   end
-  
+
 end

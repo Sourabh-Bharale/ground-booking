@@ -15,7 +15,7 @@ class UsersController < ApplicationController
         }, status: :created
     end
 
-    
+
     def current_user_registrations
         @registrations = current_user.registrations.all
         paginate(@registrations)
@@ -43,8 +43,12 @@ class UsersController < ApplicationController
 
     def paginate(record)
         begin
-            @pagy, @records = pagy(record , items: 2)
-            render json: { users: @records }, status: :ok
+            @pagy, @records = pagy(record , items: 10)
+            render json: {
+                users: @records,
+                total_pages: @pagy.pages,
+                total_records: @pagy.count
+                }, status: :ok
         rescue Pagy::OverflowError => e
             render json: { error: e.message }, status: :bad_request
         end

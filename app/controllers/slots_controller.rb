@@ -1,7 +1,7 @@
 class SlotsController < ApplicationController
     before_action :set_event
     before_action :set_slot, only: [:show, :update, :destroy]
-    before_action :check_event_validity 
+    before_action :check_event_validity
     before_action :check_event_availability
 
     def index
@@ -83,8 +83,12 @@ class SlotsController < ApplicationController
 
     def paginate(record)
         begin
-            @pagy, @records = pagy(record , items: 2)
-            render json: { users: @records }, status: :ok
+            @pagy, @records = pagy(record , items: 10)
+            render json: {
+                slots: @records,
+                total_pages: @pagy.pages,
+                total_records: @pagy.count
+            }, status: :ok
         rescue Pagy::OverflowError => e
             render json: { error: e.message }, status: :bad_request
         end

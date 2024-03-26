@@ -86,8 +86,12 @@ class RegistrationsController < ApplicationController
 
         def paginate(record)
             begin
-                @pagy, @records = pagy(record , items: 2)
-                render json: @records , each_serializer: RegistrationSerializer , status: :ok
+                @pagy, @records = pagy(record , items: 10)
+                render json: {
+                    registrations: @records,
+                    total_pages: @pagy.pages,
+                    total_records: @pagy.count
+                    } , each_serializer: RegistrationSerializer , status: :ok
             rescue Pagy::OverflowError => e
                 render json: { error: e.message }, status: :bad_request
             end
